@@ -56,34 +56,10 @@
 > สรุปและแนวทางแก้ไข: แพลตฟอร์มไม่ควรใช้บทลงโทษแบบเดียวกันกับทุกร้านค้าที่ส่งสาย แต่ควรแยกจัดการตามต้นตอปัญหา คือ (1) ออกกฎคุมเข้มเวลาเตรียมสินค้า สำหรับร้านที่แพ็กของช้าเกิน 5 วัน และ (2) จัดหาขนส่งทางเลือกหรือช่องทางส่งด่วนให้ร้านค้ายอดขายสูงที่แพ็กของตรงเวลาแต่ติดปัญหาขนส่งปลายทาง
 ---
 
-## Power BI Interactive Dashboard (`./PowerBI`)
+## Power BI Interactive Dashboard
 
 ### O2C Overview — ภาพรวมกระบวนการ คอขวด และผลกระทบต่อรีวิว
 ![O2C Overview](PowerBI/Png_O2COverview.png)
-*(หากชื่อไฟล์ภาพในโฟลเดอร์ `PowerBI/` ต่างจากนี้ สามารถแก้ไขชื่อไฟล์ในวงเล็บด้านบนได้เลยครับ)*
 
 ### State & Seller Risk — เจาะลึกความเสี่ยงรายรัฐและผู้ขายกลุ่มเสี่ยง
 ![State & Seller Risk](PowerBI/Png_State&SellerRisk.png)
-
----
-
-## แนวคิดและขั้นตอนการทำ Data Pipeline (Data Engineering & Cleaning)
-
-### 1. Data Ingestion & Schema Parsing
-- แปลงคอลัมน์เวลาทั้งหมด 5 คอลัมน์ (`order_purchase_timestamp`, `order_approved_at`, `order_delivered_carrier_date`, `order_delivered_customer_date`, `order_estimated_delivery_date`) ให้เป็นชนิดข้อมูลเพื่อให้รองรับการคำนวณความต่างของเวลา 
-
-### 2. Business Filtering & Missing Value Handling
-- กรองเฉพาะคำสั่งซื้อที่มีสถานะ `order_status == 'delivered'` เนื่องจากออเดอร์ที่ถูกยกเลิก หรือกำลังจัดส่ง ยังไม่สิ้นสุดกระบวนการ Order-to-Delivery
-- ลบแถวที่มีค่าว่าง (Missing / NaN) ใน 4 จุดเวลาหลัก เพื่อป้องกันข้อผิดพลาดทางคณิตศาสตร์ในการคำนวณ Stage Duration
-
-### 3. Duration Feature Engineering & Data Validation
-- แปลงผลต่างของเวลาให้เป็นหน่วย "วัน" โดยคำนวณผ่านค่าวินาทีรวม (`.dt.total_seconds() / 86400`)
-- Data Validation: ลบแถวข้อมูลที่ระยะเวลาติดลบ ($< 0$) ซึ่งเกิดจากระบบบันทึกเวลาผิดพลาด
-- Date Normalization: ใช้ `.dt.normalize()` ในการเปรียบเทียบ `delay_days` เพื่อตัดเศษเวลาชั่วโมง/นาที/วินาทีออก และเปรียบเทียบความล่าช้าในระดับวันที่อย่างเป็นธรรม
-
-### 4. Aggregation & Anti-Duplication Safeguards
-- รวมคะแนนรีวิวต่อ 1 `order_id` ก่อนทำการเชื่อมโยงตาราง เพื่อป้องกันปัญหา Row Multiplication จากกรณีที่ลูกค้า 1 คนรีวิวสินค้าหลายชิ้นในออเดอร์เดียวกัน
-- รวมยอดขายเฉพาะสินค้าของผู้ขายรายนั้นในแต่ละออเดอร์ (`groupby(["seller_id", "order_id"])`) ก่อนนำไปคำนวณมูลค่ายอดเงินที่ตกอยู่ในความเสี่ยง เพื่อไม่ให้เกิดปัญหานับยอดเงินซ้ำซ้อน
-
----
-
